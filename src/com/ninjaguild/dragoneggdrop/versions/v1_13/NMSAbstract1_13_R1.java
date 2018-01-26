@@ -17,28 +17,33 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-package com.ninjaguild.dragoneggdrop.versions.v1_9;
+package com.ninjaguild.dragoneggdrop.versions.v1_13;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 
 import com.ninjaguild.dragoneggdrop.versions.DragonBattle;
 import com.ninjaguild.dragoneggdrop.versions.NMSAbstract;
 
-import net.minecraft.server.v1_9_R2.EnderDragonBattle;
-import net.minecraft.server.v1_9_R2.EntityEnderDragon;
-import net.minecraft.server.v1_9_R2.IChatBaseComponent.ChatSerializer;
-import net.minecraft.server.v1_9_R2.PacketPlayOutChat;
-import net.minecraft.server.v1_9_R2.WorldProvider;
-import net.minecraft.server.v1_9_R2.WorldProviderTheEnd;
-
 import org.bukkit.World;
 import org.bukkit.block.Chest;
-import org.bukkit.craftbukkit.v1_9_R2.CraftWorld;
-import org.bukkit.craftbukkit.v1_9_R2.block.CraftChest;
-import org.bukkit.craftbukkit.v1_9_R2.entity.CraftEnderDragon;
-import org.bukkit.craftbukkit.v1_9_R2.entity.CraftPlayer;
+import org.bukkit.craftbukkit.v1_13_R1.CraftWorld;
+import org.bukkit.craftbukkit.v1_13_R1.block.CraftBlockEntityState;
+import org.bukkit.craftbukkit.v1_13_R1.block.CraftChest;
+import org.bukkit.craftbukkit.v1_13_R1.entity.CraftEnderDragon;
+import org.bukkit.craftbukkit.v1_13_R1.entity.CraftPlayer;
 import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Player;
+
+import net.minecraft.server.v1_13_R1.ChatMessageType;
+import net.minecraft.server.v1_13_R1.EnderDragonBattle;
+import net.minecraft.server.v1_13_R1.EntityEnderDragon;
+import net.minecraft.server.v1_13_R1.IChatBaseComponent.ChatSerializer;
+import net.minecraft.server.v1_13_R1.PacketPlayOutChat;
+import net.minecraft.server.v1_13_R1.TileEntityChest;
+import net.minecraft.server.v1_13_R1.WorldProvider;
+import net.minecraft.server.v1_13_R1.WorldProviderTheEnd;
 
 /**
  * An abstract implementation of necessary net.minecraft.server and
@@ -46,12 +51,12 @@ import org.bukkit.entity.Player;
  * version dependencies. Allows for version independency through
  * abstraction per Bukkit/Spigot release
  * <p>
- * <b><i>Supported Minecraft Versions:</i></b> 1.9.4
+ * <b><i>Supported Minecraft Versions:</i></b> 1.12.0
  * 
  * @author Parker Hawke - 2008Choco
  */
-public class NMSAbstract1_9_R2 implements NMSAbstract {
-
+public class NMSAbstract1_13_R1 implements NMSAbstract {
+	
 	@Override
 	public DragonBattle getEnderDragonBattleFromWorld(World world) {
 		if (world == null) return null;
@@ -60,7 +65,7 @@ public class NMSAbstract1_9_R2 implements NMSAbstract {
 		WorldProvider worldProvider = craftWorld.getHandle().worldProvider;
 		
 		if (!(worldProvider instanceof WorldProviderTheEnd)) return null;
-		return new DragonBattle1_9_R2(((WorldProviderTheEnd) worldProvider).s());
+		return new DragonBattle1_13_R1(((WorldProviderTheEnd) worldProvider).t());
 	}
 
 	@Override
@@ -68,14 +73,14 @@ public class NMSAbstract1_9_R2 implements NMSAbstract {
 		if (dragon == null) return null;
 		
 		EntityEnderDragon nmsDragon = ((CraftEnderDragon) dragon).getHandle();
-		return new DragonBattle1_9_R2(nmsDragon.cV());
+		return new DragonBattle1_13_R1(nmsDragon.df());
 	}
 	
 	@Override
 	public boolean hasBeenPreviouslyKilled(EnderDragon dragon) {
 		if (dragon == null) return false;
 		
-		EnderDragonBattle battle = ((DragonBattle1_9_R2) this.getEnderDragonBattleFromDragon(dragon)).getHandle();
+		EnderDragonBattle battle = ((DragonBattle1_13_R1) this.getEnderDragonBattleFromDragon(dragon)).getHandle();
 		return battle.d();
 	}
 	
@@ -84,7 +89,7 @@ public class NMSAbstract1_9_R2 implements NMSAbstract {
 		if (dragon == null) return -1;
 		
 		EntityEnderDragon nmsDragon = ((CraftEnderDragon) dragon).getHandle();
-		return nmsDragon.bG;
+		return nmsDragon.bH;
 	}
 
 	@Override
@@ -92,18 +97,45 @@ public class NMSAbstract1_9_R2 implements NMSAbstract {
 		if (chest == null || name == null) return;
 		
 		CraftChest craftChest = (CraftChest) chest;
-		craftChest.getTileEntity().a(name);
+		
+		// CraftChest#getTileEntity() was moved up to CraftBlockEntityState#getTileEntity() and made protected
+		// TODO Remove unnecessary checks when implementing this code for 1.13
+		try {
+			boolean entityStateExists = false;
+			try {
+				Class.forName("org.bukkit.craftbukkit.v1_12_R1.block.CraftBlockEntityState");
+				entityStateExists = true;
+			} catch (ClassNotFoundException e) { /* ignore */ }
+			
+			Method methodGetTileEntity;
+			
+			if (entityStateExists) {
+				methodGetTileEntity = CraftBlockEntityState.class.getDeclaredMethod("getTileEntity");
+			}
+			else {
+				methodGetTileEntity = CraftChest.class.getMethod("getTileEntity");
+			}
+			
+			methodGetTileEntity.setAccessible(true);
+			
+			TileEntityChest chestEntity = (TileEntityChest) methodGetTileEntity.invoke(craftChest);
+			chestEntity.setCustomName(name);
+			
+			methodGetTileEntity.setAccessible(false);
+		} catch (NoSuchMethodException | IllegalArgumentException | IllegalAccessException | InvocationTargetException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@Override
 	public void sendActionBar(String message, Player... players) {
-		PacketPlayOutChat packet = new PacketPlayOutChat(ChatSerializer.a("{\"text\":\"" + message + "\"}"), (byte) 2);
+		PacketPlayOutChat packet = new PacketPlayOutChat(ChatSerializer.a("{\"text\":\"" + message + "\"}"), ChatMessageType.GAME_INFO);
 		Arrays.stream(players).forEach(p -> ((CraftPlayer) p).getHandle().playerConnection.sendPacket(packet));
 	}
 
 	@Override
 	public void broadcastActionBar(String message, World world) {
-		PacketPlayOutChat packet = new PacketPlayOutChat(ChatSerializer.a("{\"text\":\"" + message + "\"}"), (byte) 2);
+		PacketPlayOutChat packet = new PacketPlayOutChat(ChatSerializer.a("{\"text\":\"" + message + "\"}"), ChatMessageType.GAME_INFO);
 		world.getPlayers().forEach(p -> ((CraftPlayer) p).getHandle().playerConnection.sendPacket(packet));
 	}
 }

@@ -52,11 +52,7 @@ import com.ninjaguild.dragoneggdrop.management.DEDManager;
 import com.ninjaguild.dragoneggdrop.management.EndWorldWrapper;
 import com.ninjaguild.dragoneggdrop.utils.ConfigUtil;
 import com.ninjaguild.dragoneggdrop.versions.NMSAbstract;
-import com.ninjaguild.dragoneggdrop.versions.v1_10.NMSAbstract1_10_R1;
-import com.ninjaguild.dragoneggdrop.versions.v1_11.NMSAbstract1_11_R1;
-import com.ninjaguild.dragoneggdrop.versions.v1_12.NMSAbstract1_12_R1;
-import com.ninjaguild.dragoneggdrop.versions.v1_9.NMSAbstract1_9_R1;
-import com.ninjaguild.dragoneggdrop.versions.v1_9.NMSAbstract1_9_R2;
+import com.ninjaguild.dragoneggdrop.versions.v1_13.NMSAbstract1_13_R1;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -347,17 +343,10 @@ public class DragonEggDrop extends JavaPlugin {
 	
 	private final boolean setupNMSAbstract(){
 		String version = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
-        if (version.equals("v1_9_R1")){ // 1.9.0 - 1.9.3
-        	this.nmsAbstract = new NMSAbstract1_9_R1();
-        } else if (version.equals("v1_9_R2")){ // 1.9.4
-        	this.nmsAbstract = new NMSAbstract1_9_R2();
-        } else if (version.equals("v1_10_R1")){ // 1.10.0 - 1.10.2
-        	this.nmsAbstract = new NMSAbstract1_10_R1();
-        } else if (version.equals("v1_11_R1")){ // 1.11.0 - 1.11.2
-        	this.nmsAbstract = new NMSAbstract1_11_R1();
-        } else if (version.equals("v1_12_R1")) { // 1.12.0 - 1.12.1
-        	this.nmsAbstract = new NMSAbstract1_12_R1();
-        }
+		
+		switch (version) {
+			case "v1_13_R1": nmsAbstract = new NMSAbstract1_13_R1(); // 1.13+
+		}
         
         return this.nmsAbstract != null;
 	}
